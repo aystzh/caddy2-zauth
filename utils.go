@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -19,7 +17,6 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/liuzl/store"
 	"github.com/rs/zerolog"
 )
 
@@ -77,14 +74,14 @@ func genMsg(r *http.Request) ([]byte, error) {
 	msg += params + "\n"
 
 	// Headers
-	creditAuth, _ := ParseAuth(r.Header.Get("Authorization"))
+	//creditAuth, _ := ParseAuth(r.Header.Get("Authorization"))
 	var headerKeys []string
 	lowerHeader := make(map[string]string)
 	for k, _ := range r.Header {
 		lowerHeader[strings.ToLower(k)] = r.Header.Get(k)
 	}
 	defaultHeaderKeys := []string{"content-length", "content-type", "content-md5", "credit-.*"}
-	if len(creditAuth.SignHeaders) != 0 {
+	/* if len(creditAuth.SignHeaders) != 0 {
 		headerKeys = creditAuth.SignHeaders
 	} else {
 		for k, _ := range lowerHeader {
@@ -92,6 +89,13 @@ func genMsg(r *http.Request) ([]byte, error) {
 				if match, _ := regexp.Match(dk, []byte(k)); match {
 					headerKeys = append(headerKeys, k)
 				}
+			}
+		}
+	} */
+	for k, _ := range lowerHeader {
+		for _, dk := range defaultHeaderKeys {
+			if match, _ := regexp.Match(dk, []byte(k)); match {
+				headerKeys = append(headerKeys, k)
 			}
 		}
 	}
@@ -127,7 +131,7 @@ func (m *Middleware) authorize(r *http.Request) (bool, error) {
 	ctx := r.Context()
 	zlog := zerolog.Ctx(ctx)
 	hashlog := GetZlog(ctx)
-	creditAuth, err := ParseAuth(r.Header.Get("Authorization"))
+	/*creditAuth, err := ParseAuth(r.Header.Get("Authorization"))
 	if err != nil {
 		return false, err
 	}
@@ -166,11 +170,9 @@ func (m *Middleware) authorize(r *http.Request) (bool, error) {
 		creditAuth.Ts.After(curTs.Add(time.Duration(creditAuth.Expire+300)*time.Second)) {
 		return false, ExpiredRequestErr
 	}
-
 	var msg []byte
-	msg, err = genMsg(r)
-
-	var b []byte
+	msg, _ = genMsg(r)
+	/* var b []byte
 	if b, err = m.getAuthDB().Get(creditAuth.Ak); err != nil {
 		if err.Error() == "leveldb: not found" {
 			return false, NoAuthorizationErr
@@ -182,19 +184,19 @@ func (m *Middleware) authorize(r *http.Request) (bool, error) {
 	account := new(Account)
 	if err = store.BytesToObject(b, account); err != nil {
 		return false, errors.Trace(err)
-	}
-
+	}*/
+	genMsg(r)
 	// log uname
 	zlog.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("uname", account.Uname)
+		return c.Str("uname", "zhb-web-search")
 	})
 	hashlog.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("uname", account.Uname)
+		return c.Str("uname", "zhb-web-search")
 	})
-	signKey := genSignKey([]byte(account.SecretKey), r)
+	/* signKey := genSignKey([]byte(account.SecretKey), r)
 	if encrypt(signKey, msg) != creditAuth.Signature {
 		return false, NoAuthorizationErr
-	}
+	}  */
 	return true, nil
 }
 
